@@ -65,6 +65,13 @@ public class TileManager : Singleton<TileManager>
         }
         else if (_selectedUnit != null && highlightCells.Contains(tileData.CellPos))
         {
+            // Move the selected unit to the clicked tile
+
+            List<Vector3Int> path = HexGridPathfinder.FindPath(_tiles, _selectedUnit.CurrentTile.CellPos, tileData.CellPos);
+            if (path.Count > 0)
+            {
+                StartCoroutine(_selectedUnit.GetComponent<UnitMover>().MoveAlongPath(path, _tileMap));
+            }
             _selectedUnit.PlaceOnTile(tileData, _tileMap);
             ClearHighlights();
             _selectedUnit = null;
@@ -101,13 +108,13 @@ public class TileManager : Singleton<TileManager>
         while (queue.Count > 0)
         {
             var (currentPos, cost) = queue.Dequeue();
-            
+
             if (cost > unit.MoveRange)
                 continue;
-                
+
             HighlightTile(currentPos);
 
-            foreach (var neighbor in GetNeighbors(currentPos, unit.CurrentTile.TileType))
+            foreach (var neighbor in HexGridPathfinder.GetNeighbors(_tiles, currentPos, unit.CurrentTile.TileType))
             {
                 if (!visited.Contains(neighbor))
                 {
@@ -129,58 +136,5 @@ public class TileManager : Singleton<TileManager>
             _highlightTilemap.SetTile(cellPos, _highlightTile);
             highlightCells.Add(cellPos);
         }
-    }
-    
-    private List<Vector3Int> GetNeighbors(Vector3Int pos, TileType moveableTileType)
-    {
-        // Vector3Int[] directions = new Vector3Int[]
-        // {
-        //     new Vector3Int(1, 0, 0), new Vector3Int(-1, 0, 0),
-        //     new Vector3Int(0, 1, 0), new Vector3Int(0, -1, 0),
-        //     new Vector3Int(1, -1, 0), new Vector3Int(-1, 1, 0)
-
-        //     /*
-        //     new Vector3Int(1, -1, 0),
-        //     new Vector3Int(1, 0, -1),
-        //     new Vector3Int(0, 1, -1),
-        //     new Vector3Int(-1, 1, 0),
-        //     new Vector3Int(-1, 0, 1),
-        //     new Vector3Int(0, -1, 1)
-        //     */
-        // };
-
-        // flat-top hex offset (even-q layout)
-        Vector3Int[] directionsEven = new Vector3Int[]
-        {
-            new Vector3Int(+1, 0, 0),
-            new Vector3Int(0, -1, 0),
-            new Vector3Int(-1, -1, 0),
-            new Vector3Int(-1, 0, 0),
-            new Vector3Int(-1, +1, 0),
-            new Vector3Int(0, +1, 0),
-        };
-
-        Vector3Int[] directionsOdd = new Vector3Int[]
-        {
-            new Vector3Int(+1, 0, 0),
-            new Vector3Int(+1, -1, 0),
-            new Vector3Int(0, -1, 0),
-            new Vector3Int(-1, 0, 0),
-            new Vector3Int(0, +1, 0),
-            new Vector3Int(+1, +1, 0),
-        };
-
-        Vector3Int[] directions = pos.y % 2 == 0 ? directionsEven : directionsOdd;
-
-        List<Vector3Int> neighbors = new List<Vector3Int>();
-        foreach (var dir in directions)
-        {
-            Vector3Int neighborPos = pos + dir;
-            if (_tiles.ContainsKey(neighborPos) && !_tiles[neighborPos].Unit && _tiles[neighborPos].TileType == moveableTileType)
-            {
-                neighbors.Add(neighborPos);
-            }
-        }
-        return neighbors;
     }
 }

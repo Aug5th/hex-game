@@ -20,7 +20,6 @@ public class Unit : MonoBehaviour
 
         _currentTile = tile;
         _currentTile.Unit = this;
-        transform.position = tilemap.GetCellCenterWorld(tile.CellPos);
     }
 
     public bool CheckMovableTile(TileType tileType)
