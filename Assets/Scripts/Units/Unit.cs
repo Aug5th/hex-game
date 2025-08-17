@@ -9,6 +9,7 @@ public class Unit : MonoBehaviour
     public TileData CurrentTile => _currentTile;
     [SerializeField] private int _moveRange = 3;
     public int MoveRange => _moveRange;
+    private TileType _moveableTileType = TileType.Water; // Example tile type that the unit can move on
 
     public void PlaceOnTile(TileData tile, Tilemap tilemap)
     {
@@ -20,5 +21,10 @@ public class Unit : MonoBehaviour
         _currentTile = tile;
         _currentTile.Unit = this;
         transform.position = tilemap.GetCellCenterWorld(tile.CellPos);
+    }
+
+    public bool CheckMovableTile(TileType tileType)
+    {
+        return _moveableTileType == tileType;
     }
 }

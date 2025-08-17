@@ -12,10 +12,17 @@ public class TileData
         set => _unit = value;
     }
 
-    public TileData(Vector3Int cellPos)
+    private TileType _tileType;
+    public TileType TileType
     {
+        get => _tileType;
+        set => _tileType = value;
+    }
+    public TileData(TileType tileType, Vector3Int cellPos)
+    {
+        _tileType = tileType;
         _cellPos = cellPos;
-        _unit = null;
+        _unit = null;  
     }
 
     public bool IsEmpty => _unit == null;

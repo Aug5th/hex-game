@@ -1,8 +1,7 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using Vector3 = UnityEngine.Vector3;
 
 public class TileManager : Singleton<TileManager>
 {
@@ -29,7 +28,7 @@ public class TileManager : Singleton<TileManager>
         {
             if (_tileMap.HasTile(pos))
             {
-                _tiles[pos] = new TileData(pos);
+                _tiles[pos] = new TileData(_tileMap.GetTile<SO_CustomTile>(pos).Type, pos);
             }
         }
 
@@ -49,10 +48,9 @@ public class TileManager : Singleton<TileManager>
             Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mouseWorldPos.z = 0; // Ensure we are working in 2D space
             Vector3Int cellPos = _tileMap.WorldToCell(mouseWorldPos);
-            
+
             if (_tiles.ContainsKey(cellPos))
             {
-                Debug.Log($"Tile clicked at {cellPos}");
                 OnTileClicked(_tiles[cellPos]);
             }
         }
@@ -90,30 +88,99 @@ public class TileManager : Singleton<TileManager>
     private void HighlightMoveRange(Unit unit)
     {
         ClearHighlights();
-        foreach (var kvp in _tiles)
+        Vector3Int unitPos = unit.CurrentTile.CellPos;
+        Debug.Log($"Cell pos: {unitPos}");
+
+        // Highlight surrounding tiles within move range
+        Queue<(Vector3Int pos, int cost)> queue = new Queue<(Vector3Int, int)>();
+        HashSet<Vector3Int> visited = new HashSet<Vector3Int>();
+
+        queue.Enqueue((unitPos, 0));
+        visited.Add(unitPos);
+
+        while (queue.Count > 0)
         {
-            int dist = HexDistance(unit.CurrentTile.CellPos, kvp.Key);
-            if (dist <= unit.MoveRange && kvp.Value.Unit == null)
+            var (currentPos, cost) = queue.Dequeue();
+            
+            if (cost > unit.MoveRange)
+                continue;
+                
+            HighlightTile(currentPos);
+
+            foreach (var neighbor in GetNeighbors(currentPos, unit.CurrentTile.TileType))
             {
-                highlightCells.Add(kvp.Key);
-                _highlightTilemap.SetTile(kvp.Key, _highlightTile);
+                if (!visited.Contains(neighbor))
+                {
+                    var newCost = cost + 1;
+                    if (newCost <= unit.MoveRange && _tiles[neighbor].IsEmpty)
+                    {
+                        queue.Enqueue((neighbor, newCost));
+                        visited.Add(neighbor);
+                    }
+                }
             }
         }
     }
-    
-    int HexDistance(Vector3Int a, Vector3Int b)
-    {
-        Vector3Int ac = OffsetToCube(a);
-        Vector3Int bc = OffsetToCube(b);
 
-        return (Mathf.Abs(ac.x - bc.x) + Mathf.Abs(ac.y - bc.y) + Mathf.Abs(ac.z - bc.z)) / 2;
+    private void HighlightTile(Vector3Int cellPos)
+    {
+        if (!_highlightTilemap.HasTile(cellPos))
+        {
+            _highlightTilemap.SetTile(cellPos, _highlightTile);
+            highlightCells.Add(cellPos);
+        }
     }
-
-    Vector3Int OffsetToCube(Vector3Int hex)
+    
+    private List<Vector3Int> GetNeighbors(Vector3Int pos, TileType moveableTileType)
     {
-        int x = hex.x - (hex.y >> 1); // flat-top odd-r
-        int z = hex.y;
-        int y = -x - z;
-        return new Vector3Int(x, y, z);
+        // Vector3Int[] directions = new Vector3Int[]
+        // {
+        //     new Vector3Int(1, 0, 0), new Vector3Int(-1, 0, 0),
+        //     new Vector3Int(0, 1, 0), new Vector3Int(0, -1, 0),
+        //     new Vector3Int(1, -1, 0), new Vector3Int(-1, 1, 0)
+
+        //     /*
+        //     new Vector3Int(1, -1, 0),
+        //     new Vector3Int(1, 0, -1),
+        //     new Vector3Int(0, 1, -1),
+        //     new Vector3Int(-1, 1, 0),
+        //     new Vector3Int(-1, 0, 1),
+        //     new Vector3Int(0, -1, 1)
+        //     */
+        // };
+
+        // flat-top hex offset (even-q layout)
+        Vector3Int[] directionsEven = new Vector3Int[]
+        {
+            new Vector3Int(+1, 0, 0),
+            new Vector3Int(0, -1, 0),
+            new Vector3Int(-1, -1, 0),
+            new Vector3Int(-1, 0, 0),
+            new Vector3Int(-1, +1, 0),
+            new Vector3Int(0, +1, 0),
+        };
+
+        Vector3Int[] directionsOdd = new Vector3Int[]
+        {
+            new Vector3Int(+1, 0, 0),
+            new Vector3Int(+1, -1, 0),
+            new Vector3Int(0, -1, 0),
+            new Vector3Int(-1, 0, 0),
+            new Vector3Int(0, +1, 0),
+            new Vector3Int(+1, +1, 0),
+        };
+
+        Vector3Int[] directions = pos.y % 2 == 0 ? directionsEven : directionsOdd;
+
+        List<Vector3Int> neighbors = new List<Vector3Int>();
+        foreach (var dir in directions)
+        {
+            Vector3Int neighborPos = pos + dir;
+            if (_tiles.ContainsKey(neighborPos) && !_tiles[neighborPos].Unit && _tiles[neighborPos].TileType == moveableTileType)
+            {
+                neighbors.Add(neighborPos);
+            }
+        }
+        return neighbors;
     }
 }
