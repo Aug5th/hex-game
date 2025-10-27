@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using UnityEngine.Tilemaps;
 using Vector3 = UnityEngine.Vector3;
 
@@ -15,6 +17,7 @@ public class TileManager : Singleton<TileManager>
     private Dictionary<Vector3Int, TileData> _tiles = new Dictionary<Vector3Int, TileData>();
     private Unit _selectedUnit;
 
+    public UnityAction<TileData> OnTileClickedEvent;
 
     void Start()
     {
@@ -45,45 +48,32 @@ public class TileManager : Singleton<TileManager>
     {
         if (Input.GetMouseButtonDown(0))
         {
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return;
+
             Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mouseWorldPos.z = 0; // Ensure we are working in 2D space
             Vector3Int cellPos = _tileMap.WorldToCell(mouseWorldPos);
 
             if (_tiles.ContainsKey(cellPos))
             {
-                OnTileClicked(_tiles[cellPos]);
+                OnTileClickedEvent?.Invoke(_tiles[cellPos]);
             }
         }
     }
 
-    private void OnTileClicked(TileData tileData)
+    public void HandleMoveUnit(Unit unit, TileData tileData)
     {
-        if (tileData.Unit != null)
+        List<Vector3Int> path = HexGridPathfinder.FindPath(_tiles, unit.CurrentTile.CellPos, tileData.CellPos);
+        if (path.Count > 0)
         {
-            _selectedUnit = tileData.Unit;
-            HighlightMoveRange(_selectedUnit);
+            StartCoroutine(unit.GetComponent<UnitMover>().MoveAlongPath(path, _tileMap));
         }
-        else if (_selectedUnit != null && highlightCells.Contains(tileData.CellPos))
-        {
-            // Move the selected unit to the clicked tile
-
-            List<Vector3Int> path = HexGridPathfinder.FindPath(_tiles, _selectedUnit.CurrentTile.CellPos, tileData.CellPos);
-            if (path.Count > 0)
-            {
-                StartCoroutine(_selectedUnit.GetComponent<UnitMover>().MoveAlongPath(path, _tileMap));
-            }
-            _selectedUnit.PlaceOnTile(tileData, _tileMap);
-            ClearHighlights();
-            _selectedUnit = null;
-        }
-        else
-        {
-            ClearHighlights();
-            _selectedUnit = null;
-        }
+        unit.PlaceOnTile(tileData, _tileMap);
+        ClearHighlights();
     }
 
-    private void ClearHighlights()
+    public void ClearHighlights()
     {
         foreach (var pos in highlightCells)
         {
@@ -92,11 +82,9 @@ public class TileManager : Singleton<TileManager>
         highlightCells.Clear();
     }
 
-    private void HighlightMoveRange(Unit unit)
+    public void HighlightMoveRange(Vector3Int unitPos , int unitMoveRange , TileType moveableTileType = TileType.Grass)
     {
         ClearHighlights();
-        Vector3Int unitPos = unit.CurrentTile.CellPos;
-        Debug.Log($"Cell pos: {unitPos}");
 
         // Highlight surrounding tiles within move range
         Queue<(Vector3Int pos, int cost)> queue = new Queue<(Vector3Int, int)>();
@@ -109,17 +97,17 @@ public class TileManager : Singleton<TileManager>
         {
             var (currentPos, cost) = queue.Dequeue();
 
-            if (cost > unit.MoveRange)
-                continue;
+            if (cost > 0)
+            {
+                HighlightTile(currentPos);
+            }
 
-            HighlightTile(currentPos);
-
-            foreach (var neighbor in HexGridPathfinder.GetNeighbors(_tiles, currentPos, unit.CurrentTile.TileType))
+            foreach (var neighbor in HexGridPathfinder.GetNeighbors(_tiles, currentPos, moveableTileType))
             {
                 if (!visited.Contains(neighbor))
                 {
                     var newCost = cost + 1;
-                    if (newCost <= unit.MoveRange && _tiles[neighbor].IsEmpty)
+                    if (newCost <= unitMoveRange && _tiles[neighbor].IsEmpty)
                     {
                         queue.Enqueue((neighbor, newCost));
                         visited.Add(neighbor);

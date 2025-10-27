@@ -27,7 +27,8 @@ public class UnitMover : MonoBehaviour
         while (Vector3.Distance(transform.position, targetPos) > 0.01f)
         {
             transform.position = Vector3.MoveTowards(transform.position, targetPos, _moveSpeed * Time.deltaTime);
-            yield return new WaitForSeconds(0.01f); // Small delay to allow for smooth movement
+            // yield return new WaitForSeconds(0.005f); // Small delay to allow for smooth movement
+            yield return null;
         }
         transform.position = targetPos;
     }
