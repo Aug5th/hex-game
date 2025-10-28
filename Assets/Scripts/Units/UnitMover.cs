@@ -8,14 +8,14 @@ public class UnitMover : MonoBehaviour
     [SerializeField] private float _moveSpeed = 3f;
     private bool isMoving = false;
 
-    public IEnumerator MoveAlongPath(List<Vector3Int> path, Tilemap tilemap)
+    public IEnumerator MoveAlongPath(List<Vector3Int> path)
     {
         if (isMoving) yield break;
         isMoving = true;
 
         foreach (Vector3Int tile in path)
         {
-            Vector3 targetPos = tilemap.CellToWorld(tile) + tilemap.tileAnchor; 
+            Vector3 targetPos = TileManager.Instance.GetUnitPosFromTilePos(tile);
             yield return StartCoroutine(MoveTo(targetPos));
         }
 

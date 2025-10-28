@@ -26,7 +26,7 @@ public class Unit : MonoBehaviour , IDamageable
 
     private TileType _moveableTileType = TileType.Water; // Example tile type that the unit can move on
 
-    public void PlaceOnTile(TileData tile, Tilemap tilemap)
+    public void PlaceOnTile(TileData tile)
     {
         if (_currentTile != null)
         {

@@ -37,11 +37,22 @@ public class TileManager : Singleton<TileManager>
 
         //Spawn a test unit at the center of the tilemap
         Vector3Int centerPos = new Vector3Int(0, 0, 0);
+        Vector3Int centerPos2 = new Vector3Int(-2, -3, 0);
         if (_tiles.ContainsKey(centerPos))
         {
-            Unit testUnit = Instantiate(_unitPrefab);
-            testUnit.PlaceOnTile(_tiles[centerPos], _tileMap);
+            Vector3 unitPos = GetUnitPosFromTilePos(centerPos);
+            Unit testUnit = Instantiate(_unitPrefab, unitPos, Quaternion.identity);
+            testUnit.PlaceOnTile(_tiles[centerPos]);
+
+            Vector3 unitPos2 = GetUnitPosFromTilePos(centerPos2);
+            Unit testUnit2 = Instantiate(_unitPrefab, unitPos2, Quaternion.identity);
+            testUnit2.PlaceOnTile(_tiles[centerPos2]);
         }
+    }
+
+    public Vector3 GetUnitPosFromTilePos(Vector3Int tilePos)
+    {
+        return _tileMap.GetCellCenterWorld(tilePos) + _tileMap.tileAnchor;
     }
 
     void Update()
@@ -67,9 +78,9 @@ public class TileManager : Singleton<TileManager>
         List<Vector3Int> path = HexGridPathfinder.FindPath(_tiles, unit.CurrentTile.CellPos, tileData.CellPos);
         if (path.Count > 0)
         {
-            StartCoroutine(unit.GetComponent<UnitMover>().MoveAlongPath(path, _tileMap));
+            StartCoroutine(unit.GetComponent<UnitMover>().MoveAlongPath(path));
         }
-        unit.PlaceOnTile(tileData, _tileMap);
+        unit.PlaceOnTile(tileData);
         ClearHighlights();
     }
 
