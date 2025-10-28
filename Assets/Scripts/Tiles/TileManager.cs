@@ -130,7 +130,7 @@ public class TileManager : Singleton<TileManager>
 
     private void HighlightTile(Vector3Int cellPos)
     {
-        if (!_highlightTilemap.HasTile(cellPos))
+        if (!_highlightTilemap.HasTile(cellPos) && _tiles[cellPos].Unit == null)
         {
             _highlightTilemap.SetTile(cellPos, _highlightTile);
             highlightCells.Add(cellPos);
