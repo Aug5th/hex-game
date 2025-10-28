@@ -35,7 +35,10 @@ public class UnitSelectionManager : Singleton<UnitSelectionManager>
         _unitSelectionUI.OnAttackButtonClicked -= HandleUnitAttackSelected;
         _unitSelectionUI.OnMoveButtonClicked -= HandleUnitMoveSelected;
         _unitSelectionUI.OnEndButtonClicked -= HandleUnitEndSelected;
-        TileManager.Instance.OnTileClickedEvent -= HandleTileClicked;
+        if (TileManager.Instance != null)
+        {
+            TileManager.Instance.OnTileClickedEvent -= HandleTileClicked;
+        }
     }
 
     void Start()
@@ -58,8 +61,8 @@ public class UnitSelectionManager : Singleton<UnitSelectionManager>
         if (_selectedUnit == null && tileData.Unit != null)
         {
             _currentState = SelectionState.UnitSelected;
-            _unitSelectionUI.ShowUI();
             _selectedUnit = tileData.Unit;
+            _unitSelectionUI.ShowUI(_selectedUnit.transform);
         }
 
         if (_selectedUnit != null && _currentState == SelectionState.Moving)

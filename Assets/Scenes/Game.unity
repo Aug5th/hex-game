@@ -6658,6 +6658,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7190665138f3e2242893a88b323bcde7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  canvas: {fileID: 799703683}
+  optionUI: {fileID: 1623153713}
   _attackButton: {fileID: 1643688655}
   _moveButton: {fileID: 114330579}
   _endButton: {fileID: 100952085}
